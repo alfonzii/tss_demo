@@ -23,9 +23,9 @@ use futures_util::StreamExt;
 use round_based::Delivery;
 use rust_fsm::*;
 use std::sync::Arc;
+use tokio::io::{self, AsyncBufReadExt, BufReader};
 use tokio::sync::RwLock;
 use tokio::time::{Duration, Instant};
-use tokio::io::{self, AsyncBufReadExt, BufReader};
 
 // State machine definition
 state_machine! {
@@ -123,10 +123,7 @@ pub(crate) struct Service {
 
 impl Service {
     /// Creates a new service instance.
-    pub async fn new(
-        party_id: u16,
-        p2p_node: Arc<P2PNode>,
-    ) -> Result<Self, Error> {
+    pub async fn new(party_id: u16, p2p_node: Arc<P2PNode>) -> Result<Self, Error> {
         Ok(Self {
             fsm: StateMachine::new(),
             context: Arc::new(RwLock::new(ServiceEnv::new())),
@@ -143,10 +140,9 @@ impl Service {
             self.party_id,
             CommitteeSession::Control,
         )
-            .await?;
+        .await?;
 
         let (control_receiver, _) = control_delivery.split();
-
 
         // Spawn message monitoring task
         let context_clone = Arc::clone(&self.context);
@@ -168,7 +164,7 @@ impl Service {
         let stdin = io::stdin();
         let mut reader = BufReader::new(stdin);
         let mut line = String::new();
-        
+
         loop {
             let mut context = self.context.write().await;
 
@@ -188,7 +184,9 @@ impl Service {
                         // Clear the screen using ANSI escape codes
                         print!("\x1B[2J\x1B[1;1H");
                         // Immediately transition to SendingRequest
-                        self.fsm.consume(&Input::MessageReceived).unwrap_or_default();
+                        self.fsm
+                            .consume(&Input::MessageReceived)
+                            .unwrap_or_default();
                     }
                 }
                 (service::State::SendingRequest, _) => {
@@ -204,10 +202,11 @@ impl Service {
                             Arc::clone(&self.p2p_node),
                             self.party_id,
                             CommitteeSession::SigningControl,
-                        ).await?;
+                        )
+                        .await?;
 
                         let (_, mut sender) = signing_delivery.split();
-                        
+
                         // Broadcast the request
                         if let Err(e) = sender.broadcast(request).await {
                             context.event(Input::Failed);

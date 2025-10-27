@@ -5,7 +5,6 @@
 //! including protocol-specific errors, network communication failures,
 //! storage issues, and configuration problems.
 
-
 /// Represents specific errors that can occur during protocol execution.
 ///
 /// This enum covers all protocol-specific error cases that may arise during

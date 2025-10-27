@@ -36,12 +36,12 @@ use crate::message::{NetworkMessage, WireMessage};
 use crate::network::{NetworkError, StreamDelivery};
 use crate::p2p_node::P2PNode;
 use futures::{Sink, Stream};
+use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll};
 use tokio::sync::{mpsc, mpsc::unbounded_channel};
-use log::{debug, info, warn};
 
 /// Error types specific to P2P stream operations
 #[derive(Debug, thiserror::Error)]
@@ -135,12 +135,22 @@ impl P2PMessageStream {
                             Ok(_) => break,
                             Err(e) => {
                                 if retry_count >= MAX_RETRIES {
-                                    info!("Failed to publish message after {} retries: {}", MAX_RETRIES, e);
+                                    info!(
+                                        "Failed to publish message after {} retries: {}",
+                                        MAX_RETRIES, e
+                                    );
                                     break;
                                 }
-                                debug!("Error publishing message (attempt {}): {}", retry_count + 1, e);
+                                debug!(
+                                    "Error publishing message (attempt {}): {}",
+                                    retry_count + 1,
+                                    e
+                                );
                                 retry_count += 1;
-                                tokio::time::sleep(std::time::Duration::from_millis(RETRY_DELAY_MS)).await;
+                                tokio::time::sleep(std::time::Duration::from_millis(
+                                    RETRY_DELAY_MS,
+                                ))
+                                .await;
                             }
                         }
                     }

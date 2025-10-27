@@ -22,9 +22,9 @@
 //! 4. Operational State
 //!    - Committee becomes ready for signing operations
 //!    - Handles signing requests in Ready state
-//! 
+//!
 //!  Current Weaknesses:
-//! 
+//!
 //! - No validation of party identities beyond party IDs
 //! - No timeout handling in some state transitions could lead to deadlocks
 //! - The ExecutionIdCoordination doesn't validate uniqueness of execution IDs
@@ -32,6 +32,7 @@ use crate::error::Error;
 use crate::network::{Receiver, Sender};
 use crate::p2p_delivery::P2PDelivery;
 use crate::p2p_node::P2PNode;
+use crate::protocol::ProtocolError;
 use crate::storage::KeyStorage;
 use crate::{network, signing};
 use cggmp21::key_share::AuxInfo;
@@ -50,7 +51,6 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
 use tokio::time::Instant;
-use crate::protocol::ProtocolError;
 
 /// Represents the various stages of committee initialization and operation
 ///
@@ -403,7 +403,8 @@ impl Protocol {
                         Arc::clone(&self.p2p_node),
                         party_id,
                         CommitteeSession::Protocol,
-                    ).await?;
+                    )
+                    .await?;
 
                     // Generate auxiliary info as per CGGMP21
                     let aux_info = Protocol::generate_auxiliary_info(
@@ -414,7 +415,7 @@ impl Protocol {
                     )
                     .await?;
                     self.storage.save("aux_info", &aux_info)?;
-                    
+
                     sender
                         .broadcast(ControlMessage::AuxInfoReady)
                         .await
@@ -434,11 +435,13 @@ impl Protocol {
                     let execution_id = self.storage.load::<String>("execution_id")?;
 
                     // Create P2P delivery instance
-                    let delivery = P2PDelivery::<ThresholdMsg<Secp256k1, SecurityLevel128, Sha256>>::connect(
-                        Arc::clone(&self.p2p_node),
-                        party_id,
-                        CommitteeSession::Protocol,
-                    ).await?;
+                    let delivery =
+                        P2PDelivery::<ThresholdMsg<Secp256k1, SecurityLevel128, Sha256>>::connect(
+                            Arc::clone(&self.p2p_node),
+                            party_id,
+                            CommitteeSession::Protocol,
+                        )
+                        .await?;
 
                     // Generate key share
                     let incomplete_key_share = Protocol::generate_key_share(
@@ -586,7 +589,7 @@ impl Protocol {
         party_id: u16,
         n_parties: u16,
         eid: ExecutionId<'_>,
-        delivery: P2PDelivery::<AuxOnlyMsg<Sha256, SecurityLevel128>>,
+        delivery: P2PDelivery<AuxOnlyMsg<Sha256, SecurityLevel128>>,
     ) -> Result<AuxInfo, Error> {
         println!("Generating auxiliary information for party {}", party_id);
 
@@ -615,7 +618,7 @@ impl Protocol {
         committee: &HashSet<u16>,
         eid: ExecutionId<'_>,
         threshold: u16,
-        delivery: P2PDelivery::<ThresholdMsg<Secp256k1, SecurityLevel128, Sha256>>,
+        delivery: P2PDelivery<ThresholdMsg<Secp256k1, SecurityLevel128, Sha256>>,
     ) -> Result<CoreKeyShare<Secp256k1>, Error> {
         println!("Starting distributed key generation for party {}", party_id);
 

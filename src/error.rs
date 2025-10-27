@@ -25,9 +25,9 @@
 //! }
 //! ```
 
-use crate::{network, protocol};
-use crate::ws_server::ServerError;
 use crate::storage;
+use crate::ws_server::ServerError;
+use crate::{network, protocol};
 
 /// Comprehensive error type encompassing all possible failure modes.
 ///

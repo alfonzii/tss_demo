@@ -206,7 +206,7 @@ impl AgentBehaviour {
 }
 
 /// Conversion implementations for behavior events
-/// 
+///
 impl From<IdentifyEvent> for AgentBehaviourEvent {
     fn from(value: IdentifyEvent) -> Self {
         Self::Identify(value)

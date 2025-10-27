@@ -310,7 +310,7 @@ impl KeyStorage {
         let path = self.storage_path.join(format!("{}.key", key_id));
         let encrypted = std::fs::read(path)?;
 
-        let nonce = Nonce::from_slice(b"unique nonce");     //TODO: Use unique nonce
+        let nonce = Nonce::from_slice(b"unique nonce"); //TODO: Use unique nonce
         let decrypted = self
             .cipher
             .decrypt(nonce, encrypted.as_ref())

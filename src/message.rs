@@ -128,7 +128,6 @@ pub trait RoundBasedWireMessage<M>: Sized {
     ) -> Result<Self, NetworkError>;
 }
 
-
 /// Implements conversion between round-based protocol messages and wire format messages.
 ///
 /// This implementation provides bidirectional conversion between the round-based protocol's
@@ -171,7 +170,6 @@ impl<M: Serialize> RoundBasedWireMessage<M> for WireMessage {
             MessageDestination::AllParties => None,
         })
     }
-
 
     /// Creates a new broadcast message from a round-based protocol message.
     ///

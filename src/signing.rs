@@ -79,18 +79,19 @@
 //! - Storage errors (key access, serialization)
 //!
 //! Errors are propagated through the Result type and include detailed context.
-//! 
+//!
 //!  Current Weaknesses:
-//!  - Potential timing attacks in signature verification: The comparison isn't constant-time, 
+//!  - Potential timing attacks in signature verification: The comparison isn't constant-time,
 //!    potentially leaking information about signatures
 //! - Some state transitions lack proper error handling, leading to potential protocol violations
-//! 
+//!
 use crate::committee::CommitteeSession;
 use crate::error::Error;
 use crate::network;
 use crate::network::{Receiver, Sender};
 use crate::p2p_delivery::P2PDelivery;
 use crate::p2p_node::P2PNode;
+use crate::protocol::ProtocolError;
 use crate::signing::fsm::Input;
 use crate::storage::KeyStorage;
 use cggmp21::supported_curves::Secp256k1;
@@ -107,7 +108,6 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio::time::{Duration, Instant};
-use crate::protocol::ProtocolError;
 
 state_machine! {
     /// State machine definition for the CGGMP21 signing protocol.
@@ -724,8 +724,7 @@ impl Protocol {
                                 }
                             }
                             tokio::time::sleep(Duration::from_millis((50 * party_id) as u64)).await;
-                        }
-                        else {
+                        } else {
                             println!("Couldn't take delivery handle");
                         }
                     }

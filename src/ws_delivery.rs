@@ -256,9 +256,7 @@ mod tests {
 
     #[test]
     fn test_websocket_error_display() {
-        let conn_err = WebSocketError::Connection(
-            tungstenite::Error::ConnectionClosed
-        );
+        let conn_err = WebSocketError::Connection(tungstenite::Error::ConnectionClosed);
         assert!(format!("{}", conn_err).contains("Connection error"));
 
         let proto_err = WebSocketError::Protocol("Invalid message".to_string());
@@ -329,10 +327,7 @@ mod tests {
     impl Stream for MockWebSocket {
         type Item = Result<WsMessage, tokio_tungstenite::tungstenite::Error>;
 
-        fn poll_next(
-            mut self: Pin<&mut Self>,
-            _: &mut Context<'_>,
-        ) -> Poll<Option<Self::Item>> {
+        fn poll_next(mut self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Option<Self::Item>> {
             Poll::Ready(self.messages.pop())
         }
     }

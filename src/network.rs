@@ -64,7 +64,6 @@ pub enum NetworkError {
     InvalidMessageId { expected: u64, actual: u64 },
 }
 
-
 /// Message sender component.
 ///
 /// Handles sending network messages to other parties through the connection.
@@ -393,7 +392,6 @@ pub enum DeliveryError {
     #[error("Message processing error: {0}")]
     Processing(String),
 }
-
 
 /// Stream-based delivery mechanism implementing `round_based::Delivery`.
 ///
