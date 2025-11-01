@@ -97,6 +97,7 @@ use crate::storage::KeyStorage;
 use cggmp21::supported_curves::Secp256k1;
 use cggmp21::{ExecutionId, Signature};
 use futures_util::StreamExt;
+use hex::ToHex;
 use inline_colorization::*;
 use rand_core::OsRng;
 use round_based::{Delivery, Incoming, MpcParty};
@@ -572,6 +573,18 @@ impl Protocol {
                 (fsm::State::Idle, Some(Input::Starting)) => {
                     let peer_id = self.p2p_node.peer_id();
                     println!("Ready for signing operations as party {party_id} [{peer_id}]");
+
+                    // Print shared ECDSA public key (Secp256k1) in compressed hex form (02/03 + 32 bytes)
+                    match self.storage.load_key_share("key_share") {
+                        Ok(key_share) => {
+                            let val = key_share.shared_public_key.to_bytes(false);
+                            let hex_str = val.encode_hex::<String>();
+                            println!("Shared public key (Secp256k1, uncompressed hex): {hex_str}");
+                        }
+                        Err(e) => {
+                            println!("Key share not found: {e}");
+                        }
+                    }
                 }
 
                 (fsm::State::Idle, Some(Input::SignRequestReceived)) => {
