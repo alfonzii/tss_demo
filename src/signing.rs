@@ -281,6 +281,9 @@ pub struct Context {
     /// Message to be signed
     current_message: Option<Vec<u8>>,
 
+    /// Last message processed by the signing phase
+    last_signed_message: Option<Vec<u8>>,
+
     /// Deadline for collecting signing candidates
     deadline: Option<Instant>,
 
@@ -304,6 +307,7 @@ impl Context {
             received_candidates: HashMap::new(),
             quorum_approved: HashSet::new(),
             current_message: None,
+            last_signed_message: None,
             deadline: None,
             last_event: None,
             signing_parties: Vec::new(),
@@ -320,6 +324,7 @@ impl Context {
         self.received_candidates.clear();
         self.quorum_approved.clear();
         self.current_message = None;
+        self.last_signed_message = None;
         self.deadline = None;
         self.signing_parties.clear();
     }
@@ -682,6 +687,7 @@ impl Protocol {
                         let _ = delivery_handle.take();
                         context.last_event = Some(Input::SigningSkipped);
                     } else if let Some(message) = &context.current_message.take() {
+                        context.last_signed_message = Some(message.clone());
                         println!(
                             "- Starting signing process for message of length: {}",
                             message.len()
@@ -740,12 +746,33 @@ impl Protocol {
                                 .iter()
                                 .all(|(_, sig)| sig.r == first_sig.r && sig.s == first_sig.s);
 
-                            println!("- Signature verification result: {}", all_match);
+                            let signature_verified = if all_match {
+                                if let Some(message) = &context.last_signed_message {
+                                    let key_share = self.storage.load_key_share("key_share")?;
+                                    let public_key = key_share.shared_public_key;
+                                    let data_to_sign =
+                                        cggmp21::DataToSign::digest::<Sha256>(message);
+                                    first_sig.verify(public_key.as_ref(), &data_to_sign).is_ok()
+                                } else {
+                                    println!(
+                                        "- Unable to verify signature: missing message payload"
+                                    );
+                                    false
+                                }
+                            } else {
+                                false
+                            };
+
+                            println!("- Signature comparison result: {}", all_match);
+                            println!("- Signature verified: {}", signature_verified);
+
                             context.event(Input::VerificationComplete);
 
                             // Broadcast verification result
                             sender
-                                .broadcast(Message::VerificationResult { success: all_match })
+                                .broadcast(Message::VerificationResult {
+                                    success: all_match && signature_verified,
+                                })
                                 .await
                                 .map_err(Error::Network)?;
                         }
@@ -858,6 +885,7 @@ async fn handle_messages(
         let input = match incoming.msg {
             Message::SignRequest { message } => {
                 context.current_message = Some(message);
+                context.last_signed_message = None;
                 Input::SignRequestReceived
             }
             Message::SigningAvailable => {
