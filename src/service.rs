@@ -171,16 +171,20 @@ impl Service {
             match (&self.fsm.state(), context.last_event.take()) {
                 (service::State::WaitingForMessage, _) => {
                     println!("Enter a message to sign (or 'exit' to quit):");
+                    line.clear();
 
                     // Read line will return when enter is pressed
                     if reader.read_line(&mut line).await.is_ok() {
-                        // Only trim for exit check
-                        if line.trim().to_lowercase() == "exit" {
+                        let input = line.trim_end_matches(&['\n', '\r'][..]);
+                        // Exit check
+                        if input.eq_ignore_ascii_case("exit") {
+                            line.clear();
                             self.fsm.consume(&Input::Failed).unwrap_or_default();
                             continue;
                         }
                         // Create a new string for storage to avoid move issues
-                        context.set_message(line.to_string());
+                        context.set_message(input.to_string());
+                        line.clear();
                         // Clear the screen using ANSI escape codes
                         print!("\x1B[2J\x1B[1;1H");
                         // Immediately transition to SendingRequest
